@@ -1,25 +1,30 @@
-const {compile} = require('json-schema-to-typescript')
+const { compile } = require('json-schema-to-typescript')
 const fs = require('fs')
 const camelcase = require('camelcase')
 const defaultCustomMapper = require('./defaultCustomMapper')
 
-module.exports = function storyblokToTypescript ({
-  componentsJson = {components: []},
-  customTypeParser = () => {
+module.exports = function storyblokToTypescript({
+  componentsJson = { components: [] },
+  customTypeParser = () =>
+  {
   },
   path = 'src/typings/generated/components-schema.ts',
   titleSuffix = '_storyblok',
   titlePrefix = ''
-}) {
+})
+{
   let tsString = []
 
   const getTitle = (t) => titlePrefix + t + titleSuffix
 
   const groupUuids = {}
 
-  componentsJson.components.forEach(value => {
-    if (value.component_group_uuid) {
-      if (!groupUuids[value.component_group_uuid]) {
+  componentsJson.components.forEach(value =>
+  {
+    if (value.component_group_uuid)
+    {
+      if (!groupUuids[value.component_group_uuid])
+      {
         groupUuids[value.component_group_uuid] = []
       }
       groupUuids[value.component_group_uuid].push(camelcase(getTitle(value.name), {
@@ -28,8 +33,10 @@ module.exports = function storyblokToTypescript ({
     }
   })
 
-  async function genTsSchema () {
-    for (const values of componentsJson.components) {
+  async function genTsSchema()
+  {
+    for (const values of componentsJson.components)
+    {
       const obj = {}
       obj.$id = '#/' + values.name
       // obj.$ref = '/' + values.name
@@ -43,58 +50,57 @@ module.exports = function storyblokToTypescript ({
         type: 'string',
         enum: [values.name]
       }
-      if (values.name === 'global' || values.name === 'page') {
+      if (values.name === 'global' || values.name === 'page')
+      {
         obj.properties.uuid = {
           type: 'string'
         }
       }
       const requiredFields = ['_uid', 'component']
-      Object.keys(values.schema).forEach(key => {
-        if (values.schema[key].required) {
+      Object.keys(values.schema).forEach(key =>
+      {
+        if (values.schema[key].required)
+        {
           requiredFields.push(key)
         }
       })
-      if (requiredFields.length) {
+      if (requiredFields.length)
+      {
         obj.required = requiredFields
       }
-      try {
+      try
+      {
         const ts = await compile(obj, values.name, {
           unknownAny: false,
           bannerComment: '',
           unreachableDefinitions: true
         })
         tsString.push(ts)
-      } catch (e) {
+      } catch (e)
+      {
         console.log('ERROR', e)
       }
     }
   }
 
-  function typeMapper (schema = {}, title) {
+  function typeMapper(schema = {}, title)
+  {
     const parseObj = {}
-    Object.keys(schema).forEach((key) => {
+    Object.keys(schema).forEach((key) =>
+    {
       const obj = {}
       const schemaElement = schema[key]
       const type = schemaElement.type
-      if (type === 'custom') {
+      if (type === 'custom')
+      {
         Object.assign(parseObj, defaultCustomMapper(key, schemaElement))
         Object.assign(parseObj, customTypeParser(key, schemaElement))
         return
-      } else if (type === 'multilink') {
+      } else if (type === 'multilink')
+      {
         Object.assign(parseObj, {
           [key]: {
             'oneOf': [
-              {
-                type: 'object',
-                properties: {
-                  cached_url: {
-                    type: 'string'
-                  },
-                  linktype: {
-                    type: 'string'
-                  }
-                }
-              },
               {
                 type: 'object',
                 properties: {
@@ -107,6 +113,29 @@ module.exports = function storyblokToTypescript ({
                   linktype: {
                     type: 'string',
                     enum: ['story']
+                  },
+                  story: {
+                    type: 'object',
+                    properties: {
+                      full_slug: {
+                        type: 'string'
+                      },
+                      id: {
+                        type: 'number'
+                      },
+                      name: {
+                        type: 'string'
+                      },
+                      slug: {
+                        type: 'string'
+                      },
+                      url: {
+                        type: 'string'
+                      },
+                      uuid: {
+                        type: 'string'
+                      },
+                    }
                   }
                 }
               },
@@ -140,7 +169,8 @@ module.exports = function storyblokToTypescript ({
             ]
           }
         })
-      } else if (type === 'asset') {
+      } else if (type === 'asset')
+      {
         Object.assign(parseObj, {
           [key]: {
             type: 'object',
@@ -168,82 +198,98 @@ module.exports = function storyblokToTypescript ({
             additionalProperties: false
           }
         })
-      } else if (type === 'multiasset') {
+      } else if (type === 'multiasset')
+      {
         Object.assign(parseObj, {
-            [key]: {
-              type: 'array',
-              items: {
-                type: 'object',
-                required: ['id', 'filename', 'name'],
-                properties: {
-                  alt: {
-                    type: 'string'
-                  },
-                  copyright: {
-                    type: 'string'
-                  },
-                  id: {
-                    type: 'number'
-                  },
-                  filename: {
-                    type: 'string'
-                  },
-                  name: {
-                    type: 'string'
-                  },
-                  title: {
-                    type: 'string'
-                  }
+          [key]: {
+            type: 'array',
+            items: {
+              type: 'object',
+              required: ['id', 'filename', 'name'],
+              properties: {
+                alt: {
+                  type: 'string'
                 },
-                additionalProperties: false
-              }
+                copyright: {
+                  type: 'string'
+                },
+                id: {
+                  type: 'number'
+                },
+                filename: {
+                  type: 'string'
+                },
+                name: {
+                  type: 'string'
+                },
+                title: {
+                  type: 'string'
+                }
+              },
+              additionalProperties: false
             }
           }
+        }
         )
       }
       const schemaType = parseType(type)
-      if (!schemaType) {
+      if (!schemaType)
+      {
         return
       }
 
       obj[key] = {
         type: schemaType
       }
-      if (schemaElement.options && schemaElement.options.length) {
+      if (schemaElement.options && schemaElement.options.length)
+      {
         const items = schemaElement.options.map(item => item.value)
-        if (schemaType === 'string') {
+        if (schemaType === 'string')
+        {
           obj[key].enum = items
-        } else {
+        } else
+        {
           obj[key].items = {
             enum: items
           }
         }
       }
-      if (type === 'bloks') {
-        if (schemaElement.restrict_components) {
-          if (schemaElement.restrict_type === 'groups') {
-            if (Array.isArray(schemaElement.component_group_whitelist) && schemaElement.component_group_whitelist.length) {
+      if (type === 'bloks')
+      {
+        if (schemaElement.restrict_components)
+        {
+          if (schemaElement.restrict_type === 'groups')
+          {
+            if (Array.isArray(schemaElement.component_group_whitelist) && schemaElement.component_group_whitelist.length)
+            {
               let currentGroupElements = []
-              schemaElement.component_group_whitelist.forEach(groupId => {
+              schemaElement.component_group_whitelist.forEach(groupId =>
+              {
                 const currentGroup = groupUuids[groupId]
-                if (Array.isArray(currentGroup)) {
+                if (Array.isArray(currentGroup))
+                {
                   currentGroupElements = [...currentGroupElements, ...currentGroup]
-                } else {
+                } else
+                {
                   console.log('Group has no members: ', groupId)
                 }
               })
               obj[key].tsType = `(${currentGroupElements.join(' | ')})[]`
             }
-          } else {
-            if (Array.isArray(schemaElement.component_whitelist) && schemaElement.component_whitelist.length) {
+          } else
+          {
+            if (Array.isArray(schemaElement.component_whitelist) && schemaElement.component_whitelist.length)
+            {
               obj[key].tsType = `(${schemaElement.component_whitelist.map(i => camelcase(getTitle(i), {
                 pascalCase: true
               })).join(' | ')})[]`
-            } else {
+            } else
+            {
               console.log('No whitelisted component found')
             }
           }
-        } else {
+        } else
+        {
           console.log('Type: bloks array but not whitelisted (will result in all elements):', title)
         }
       }
@@ -253,8 +299,10 @@ module.exports = function storyblokToTypescript ({
     return parseObj
   }
 
-  function parseType (type) {
-    switch (type) {
+  function parseType(type)
+  {
+    switch (type)
+    {
       case 'text':
         return 'string'
       case 'bloks':
@@ -284,7 +332,8 @@ module.exports = function storyblokToTypescript ({
 
 
   genTsSchema()
-    .then(() => {
+    .then(() =>
+    {
       fs.writeFileSync(path, tsString.join('\n'))
     })
 }
