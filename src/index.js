@@ -114,6 +114,9 @@ module.exports = function storyblokToTypescript({
                     type: 'string',
                     enum: ['story']
                   },
+                  anchor: {
+                    type: "string"
+                  },
                   story: {
                     type: 'object',
                     properties: {
@@ -135,9 +138,11 @@ module.exports = function storyblokToTypescript({
                       uuid: {
                         type: 'string'
                       },
-                    }
+                    },
+                    additionalProperties: false
                   }
-                }
+                },
+                additionalProperties: false
               },
               {
                 type: 'object',
@@ -152,7 +157,8 @@ module.exports = function storyblokToTypescript({
                     type: 'string',
                     enum: ['asset', 'url']
                   }
-                }
+                },
+                additionalProperties: false
               },
               {
                 type: 'object',
@@ -164,7 +170,8 @@ module.exports = function storyblokToTypescript({
                     type: 'string',
                     enum: ['email']
                   }
-                }
+                },
+                additionalProperties: false
               }
             ]
           }
